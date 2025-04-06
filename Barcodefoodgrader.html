@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barcode Food Grader</title>
+    <style>
+        body {
+            background-color: #f0f4f8;
+            font-family: 'Roboto', sans-serif;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        #quiz-container {
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            width: 60%;
+            padding: 20px;
+            text-align: center;
+        }
+
+        #quiz-container h1 {
+            color: #0074d9;
+        }
+
+        input[type="file"], button, input[type="text"] {
+            background: linear-gradient(135deg, #0074d9, #005fa3);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            margin: 10px 0;
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        button:hover {
+            background: linear-gradient(135deg, #005fa3, #004080);
+            box-shadow: 0 5px 15px rgba(0, 116, 217, 0.3);
+        }
+
+        #food-info {
+            margin-top: 20px;
+            text-align: left;
+            background-color: #f9f9f9;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 3px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        #food-info h2 {
+            color: #0074d9;
+            border-bottom: 2px solid #0074d9;
+            padding-bottom: 5px;
+            margin-bottom: 20px;
+        }
+
+        .food-details, .nutrition-facts {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .food-details div, .nutrition-facts div {
+            width: 45%;
+            margin-bottom: 10px;
+        }
+
+        .food-details div p, .nutrition-facts div p {
+            margin: 5px 0;
+        }
+
+        .nutrition-facts h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .nutrition-facts p, .food-details p {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .nutrition-facts strong {
+            color: #0074d9;
+        }
+
+        .ingredients, .allergens {
+            margin-bottom: 20px;
+        }
+
+        .ingredients p, .allergens p {
+            background-color: #eef7ff;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div id="quiz-container">
+        <h1>Food Barcode Grader</h1>
+
+        <!-- Upload and Scan Section -->
+        <div id="front-screen">
+            <p>Upload an image of the food barcode or type it below to get health grading:</p>
+            <input type="file" id="barcodeImage" accept="image/*" /><br>
+            <button id="uploadImage">Upload and Scan</button>
+            <hr>
+            <p>Or, type the barcode manually:</p>
+            <input type="text" id="barcodeInput" placeholder="Enter barcode" /><br>
+            <button id="submitBarcode">Submit Barcode</button>
+        </div>
+
+        <!-- Display Food Information -->
+        <div id="food-info"></div>
+    </div>
+
+    <script src="https://unpkg.com/@zxing/library@latest"></script>
+    <script>
+        // Handle image upload and scan
+        document.getElementById('uploadImage').addEventListener('click', () => {
+            const input = document.getElementById('barcodeImage').files[0];
+            if (input) {
+                processImage(input);
+            } else {
+                alert('Please select an image first!');
+            }
+        });
+
+        // Handle manual barcode input
+        document.getElementById('submitBarcode').addEventListener('click', () => {
+            const barcode = document.getElementById('barcodeInput').value.trim();
+            if (barcode) {
+                fetchFoodData(barcode);
+            } else {
+                alert('Please enter a barcode!');
+            }
+        });
+
+        function processImage(imageFile) {
+            const reader = new FileReader();
+
+            reader.onload = function(event) {
+                const img = new Image();
+                img.src = event.target.result;
+
+                img.onload = function() {
+                    // Use ZXing to decode the barcode from the image
+                    const codeReader = new ZXing.BrowserBarcodeReader();
+                    codeReader.decodeFromImage(img)
+                        .then(result => {
+                            console.log(result.text);  // The scanned barcode
+                            fetchFoodData(result.text);  // Fetch data from the barcode
+                        })
+                        .catch(err => {
+                            alert('No barcode detected or unreadable image.');
+                            console.error(err);
+                        });
+                };
+            };
+
+            reader.readAsDataURL(imageFile);
+        }
+
+        function fetchFoodData(barcode) {
+            const apiUrl = `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`;
+
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 1) {
+                        displayFoodInfo(data.product);
+                    } else {
+                        alert('Food not found!');
+                    }
+                })
+                .catch(error => console.error('Error fetching food data:', error));
+        }
+
+        function displayFoodInfo(product) {
+            const foodInfoDiv = document.getElementById('food-info');
+            foodInfoDiv.innerHTML = `
+                <h2>${product.product_name}</h2>
+                <div class="food-details">
+                    <div>
+                        <p><strong>Brand:</strong> ${product.brands || 'Unknown'}</p>
+                        <p><strong>Nutrition Grade:</strong> ${product.nutrition_grades || 'Not available'}</p>
+                        <p><strong>Calories:</strong> ${product.nutriments.energy_kcal || 'Not available'} kcal</p>
+                        <p><strong>Serving Size:</strong> ${product.serving_size || 'Not available'}</p>
+                    </div>
+                    <div>
+                        <p><strong>Packaging:</strong> ${product.packaging || 'Not available'}</p>
+                        <p><strong>Nutri-Score:</strong> ${product.nutrition_score_debug || 'Not available'}</p>
+                    </div>
+                </div>
+                <div class="nutrition-facts">
+                    <h3>Nutritional Facts:</h3>
+                    <div>
+                        <p><strong>Fat:</strong> ${product.nutriments.fat || 'Not available'} g</p>
+                        <p><strong>Carbohydrates:</strong> ${product.nutriments.carbohydrates || 'Not available'} g</p>
+                        <p><strong>Sugars:</strong> ${product.nutriments.sugars || 'Not available'} g</p>
+                        <p><strong>Proteins:</strong> ${product.nutriments.proteins || 'Not available'} g</p>
+                    </div>
+                </div>
+                <div class="ingredients">
+                    <h3>Ingredients:</h3>
+                    <p>${product.ingredients_text || 'No ingredients listed'}</p>
+                </div>
+                <div class="allergens">
+                    <h3>Allergens:</h3>
+                    <p>${product.allergens || 'No allergens listed'}</p>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

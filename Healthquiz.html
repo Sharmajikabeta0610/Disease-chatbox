@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Health & Hygiene Quiz</title>
+    <style>
+        body {
+            background-color: #f0f4f8;
+            font-family: 'Roboto', sans-serif;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        #quiz-container {
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            width: 60%;
+            padding: 20px;
+            text-align: center;
+        }
+
+        #quiz-container h1 {
+            color: #0074d9;
+        }
+
+        .question {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .option {
+            background-color: #f0f0f0;
+            padding: 10px 20px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            width: 80%;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .option:hover {
+            background-color: #e0e0e0;
+        }
+
+        .option.selected {
+            background-color: #0074d9;
+            color: white;
+        }
+
+        #next-button, #prev-button, #submit-button, #start-10-button, #start-20-button {
+            background: linear-gradient(135deg, #0074d9, #005fa3);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+            margin: 20px 5px;
+        }
+
+        #next-button:hover, #prev-button:hover, #submit-button:hover, #start-10-button:hover, #start-20-button:hover {
+            background: linear-gradient(135deg, #005fa3, #004080);
+            box-shadow: 0 5px 15px rgba(0, 116, 217, 0.3);
+        }
+
+        #result, #quiz-content {
+            display: none;
+        }
+
+        #result-details {
+            text-align: left;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="quiz-container">
+        <h1>Food Health & Hygiene Quiz</h1>
+        <!-- Front Screen -->
+        <div id="front-screen">
+            <p>Select the quiz round you want to play:</p>
+            <button id="start-10-button" onclick="startQuiz(10)">10 Question Round</button>
+            <button id="start-20-button" onclick="startQuiz(20)">20 Question Round</button>
+        </div>
+
+        <!-- Quiz Content -->
+        <div id="quiz-content">
+            <div class="question" id="question"></div>
+            <div class="options" id="options"></div>
+            <button id="prev-button" onclick="prevQuestion()">Previous</button>
+            <button id="next-button" onclick="nextQuestion()">Next</button>
+            <button id="submit-button" onclick="submitQuiz()">Submit</button>
+        </div>
+
+        <!-- Result Screen -->
+        <div id="result">
+            <h2>Your Score: <span id="score"></span></h2>
+            <div id="result-details"></div>
+            <button onclick="restartQuiz()">Restart Quiz</button>
+        </div>
+    </div>
+
+    <script>
+        // Quiz data
+        const fullQuizData = [
+            // True/False Questions (5 points each)
+            { 
+                question: " Washing hands before eating can prevent foodborne illnesses.", 
+                options: ["True", "False"], 
+                answer: "True",
+                type: "true-false"
+            },
+            { 
+                question: " It is safe to eat cooked food that has been left out overnight.", 
+                options: ["True", "False"], 
+                answer: "False", 
+                type: "true-false"
+            },
+            { 
+                question: " Keeping raw and cooked foods separate prevents cross-contamination.", 
+                options: ["True", "False"], 
+                answer: "True",
+                type: "true-false"
+            },
+            { 
+                question: " Rinsing fruits and vegetables with water is not necessary before eating.", 
+                options: ["True", "False"], 
+                answer: "False", 
+                type: "true-false"
+            },
+            { 
+                question: " Storing food in airtight containers helps prevent spoilage.", 
+                options: ["True", "False"], 
+                answer: "True",
+                type: "true-false"
+            },
+            // Case-based Questions (10 points each)
+            { 
+                question: " You notice your friend eating a salad prepared with wilted greens and expired dressing. What should you do?", 
+                options: [
+                    "A) Ignore it, it's probably fine.",
+                    "B) Suggest getting a fresh salad with good ingredients.",
+                    "C) Tell them to add more dressing to cover the taste."
+                ], 
+                answer: "B) Suggest getting a fresh salad with good ingredients.",
+                type: "case-based"
+            },
+            { 
+                question: " You find a piece of chicken in the fridge that has a strange odor. What is the best course of action?", 
+                options: [
+                    "A) Cook it thoroughly to kill any bacteria.",
+                    "B) Throw it away, as it may cause food poisoning.",
+                    "C) Marinate it with spices to mask the odor."
+                ], 
+                answer: "B) Throw it away, as it may cause food poisoning.",
+                type: "case-based"
+            },
+            { 
+                question: " During a picnic, you see that the food has been left out in the sun for over two hours. What should you do?", 
+                options: [
+                    "A) Eat it quickly before it spoils.",
+                    "B) Cover it to keep insects away and continue eating.",
+                    "C) Discard the food to avoid the risk of foodborne illness."
+                ], 
+                answer: "C) Discard the food to avoid the risk of foodborne illness.",
+                type: "case-based"
+            },
+            { 
+                question: " You notice that your neighbor's children often skip breakfast. What would be a good suggestion?", 
+                options: [
+                    "A) Recommend having a balanced breakfast for better health and energy.",
+                    "B) Skip breakfast too, since it's not important.",
+                    "C) Suggest eating a lot of junk food to make up for it."
+                ], 
+                answer: "A) Recommend having a balanced breakfast for better health and energy.",
+                type: "case-based"
+            },
+            { 
+                question: " Your family often leaves leftovers on the counter for hours before refrigerating them. What should you advise?", 
+                options: [
+                    "A) Put leftovers in the fridge within two hours to prevent bacteria growth.",
+                    "B) Leave them out, as bacteria cannot grow on cooked food.",
+                    "C) Reheat leftovers every hour to kill any bacteria."
+                ], 
+                answer: "A) Put leftovers in the fridge within two hours to prevent bacteria growth.",
+                type: "case-based"
+            },
+            // Additional questions for 20-question round
+            { 
+                question: " Fresh fruits and vegetables should be washed before peeling to prevent dirt transfer.", 
+                options: ["True", "False"], 
+                answer: "True",
+                type: "true-false"
+            },
+            { 
+                question: " Eating undercooked eggs can lead to foodborne illnesses such as Salmonella.", 
+                options: ["True", "False"], 
+                answer: "True", 
+                type: "true-false"
+            },
+            { 
+                question: " Leftovers should be heated to at least 165°F (74°C) before eating.", 
+                options: ["True", "False"], 
+                answer: "True",
+                type: "true-false"
+            },
+            { 
+                question: " You should use the same cutting board for both meat and vegetables to save time.", 
+                options: ["True", "False"], 
+                answer: "False", 
+                type: "true-false"
+            },
+            { 
+                question: " Refrigerating hot food immediately can cause spoilage.", 
+                options: ["True", "False"], 
+                answer: "False",
+                type: "true-false"
+            },
+            { 
+                question: " You see a bakery selling cakes with past expiration dates. What should you do?", 
+                options: [
+                    "A) Inform the store manager about the expired products.",
+                    "B) Buy them because they're cheaper.",
+                    "C) Ignore it and leave the store."
+                ], 
+                answer: "A) Inform the store manager about the expired products.",
+                type: "case-based"
+            },
+            { 
+                question: " You find mold on one piece of bread in a loaf. What should you do?", 
+                options: [
+                    "A) Throw away the entire loaf, as mold can spread.",
+                    "B) Remove the moldy piece and eat the rest.",
+                    "C) Toast the bread to kill the mold."
+                ], 
+                answer: "A) Throw away the entire loaf, as mold can spread.",
+                type: "case-based"
+            },
+            { 
+                question: " During a food safety inspection, you notice employees not wearing gloves while handling food. What should you do?", 
+                options: [
+                    "A) Report it to the manager, as it is a hygiene violation.",
+                    "B) Ignore it, since it won't affect the food.",
+                    "C) Tell them to wash their hands frequently."
+                ], 
+                answer: "A) Report it to the manager, as it is a hygiene violation.",
+                type: "case-based"
+            },
+            { 
+                question: " You see a food vendor using the same utensil for raw meat and cooked food. What should you advise?", 
+                options: [
+                    "A) Suggest using separate utensils for raw and cooked foods.",
+                    "B) It's fine as long as the utensil is cleaned afterward.",
+                    "C) Use the utensil only for cooked food next time."
+                ], 
+                answer: "A) Suggest using separate utensils for raw and cooked foods.",
+                type: "case-based"
+            },
+            { 
+                question: " Your friend is using a dented can for cooking. What should you do?", 
+                options: [
+                    "A) Advise against using it, as it may be unsafe.",
+                    "B) Use it anyway, as the food inside is probably fine.",
+                    "C) Shake the can to check if it's still usable."
+                ], 
+                answer: "A) Advise against using it, as it may be unsafe.",
+                type: "case-based"
+            }
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+        let userAnswers = [];
+        let quizData = [];
+
+        // Start the quiz with the chosen number of questions
+        function startQuiz(questionCount) {
+            document.getElementById('front-screen').style.display = 'none';
+            document.getElementById('quiz-content').style.display = 'block';
+
+            // Select random questions based on the selected round
+            quizData = fullQuizData.sort(() => 0.5 - Math.random()).slice(0, questionCount);
+            userAnswers = Array(quizData.length).fill(null);
+
+            loadQuestion();
+        }
+
+        // Load the current question
+        function loadQuestion() {
+            const questionData = quizData[currentQuestion];
+            document.getElementById('question').innerText = questionData.question;
+
+            const optionsContainer = document.getElementById('options');
+            optionsContainer.innerHTML = ''; // Clear previous options
+            questionData.options.forEach((option, index) => {
+                const optionElement = document.createElement('div');
+                optionElement.className = 'option';
+                optionElement.innerText = option;
+                optionElement.onclick = () => selectOption(index);
+                if (userAnswers[currentQuestion] === index) {
+                    optionElement.classList.add('selected');
+                }
+                optionsContainer.appendChild(optionElement);
+            });
+
+            // Hide buttons if at start or end of quiz
+            document.getElementById('prev-button').style.display = currentQuestion === 0 ? 'none' : 'inline-block';
+            document.getElementById('next-button').style.display = currentQuestion === quizData.length - 1 ? 'none' : 'inline-block';
+            document.getElementById('submit-button').style.display = currentQuestion === quizData.length - 1 ? 'inline-block' : 'none';
+        }
+
+        // Select an option
+        function selectOption(index) {
+            userAnswers[currentQuestion] = index;
+            loadQuestion(); // Reload to apply selected style
+        }
+
+        // Go to the next question
+        function nextQuestion() {
+            if (userAnswers[currentQuestion] !== null) {
+                currentQuestion++;
+                loadQuestion();
+            } else {
+                alert("Please select an option before proceeding.");
+            }
+        }
+
+        // Go to the previous question
+        function prevQuestion() {
+            currentQuestion--;
+            loadQuestion();
+        }
+
+        // Submit the quiz and show results
+        function submitQuiz() {
+            let totalScore = 0;
+            let correctAnswers = 0;
+            let resultDetails = "";
+
+            userAnswers.forEach((answer, index) => {
+                const questionData = quizData[index];
+                const questionScore = questionData.type === "true-false" ? 5 : 10;
+
+                if (quizData[index].options[answer] === quizData[index].answer) {
+                    totalScore += questionScore;
+                    correctAnswers++;
+                    resultDetails += `<p>Question ${index + 1}: Correct (+${questionScore} points)</p>`;
+                } else {
+                    resultDetails += `<p>Question ${index + 1}: Incorrect (0 points)</p>`;
+                }
+            });
+
+            document.getElementById('quiz-content').style.display = 'none';
+            document.getElementById('result').style.display = 'block';
+            document.getElementById('score').innerText = totalScore;
+            document.getElementById('result-details').innerHTML = resultDetails;
+        }
+
+        // Restart the quiz
+        function restartQuiz() {
+            currentQuestion = 0;
+            score = 0;
+            userAnswers.fill(null);
+            document.getElementById('quiz-content').style.display = 'none';
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('front-screen').style.display = 'block';
+        }
+    </script>
+</body>
+</html>

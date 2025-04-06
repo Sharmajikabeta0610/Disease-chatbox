@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disease Chatbox</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f0f4f8;
+            color: #333;
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        #disease-chat-container {
+            background-color: white;
+            padding: 20px;
+            max-width: 800px;
+            margin: 50px auto;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        #disease-chat-container h1 {
+            font-size: 1.8rem;
+            color: #0074d9;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        #user-input {
+            background-color: white;
+            color: #333;
+            padding: 15px;
+            width: 70%;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            margin-right: 10px;
+            transition: border 0.3s ease;
+        }
+        #user-input:focus {
+            border: 2px solid #0074d9;
+        }
+        #send-button {
+            background: linear-gradient(135deg, #0074d9, #005fa3);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+        }
+        #send-button:hover {
+            background: linear-gradient(135deg, #005fa3, #004080);
+            box-shadow: 0 5px 15px rgba(0, 116, 217, 0.3);
+        }
+        #send-button:hover::after {
+            visibility: visible;
+            opacity: 1;
+        }
+        #send-button::after {
+            content: "Press to get disease information";
+            position: absolute;
+            top: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        #chat-output {
+            display: flex;
+            flex-direction: column;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 20px;
+            padding-right: 10px;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+        .message {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 20px;
+            max-width: 75%;
+            word-wrap: break-word;
+            font-size: 0.95rem;
+        }
+        .user {
+            background-color: #0074d9;
+            color: white;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        .bot {
+            background-color: #f0f0f0;
+            color: #333;
+            align-self: flex-start;
+            margin-right: auto;
+        }
+        /* Autocomplete styling */
+        #autocomplete-list {
+            position: absolute;
+            background-color: white;
+            border: 1px solid #ddd;
+            max-height: 150px;
+            overflow-y: auto;
+            z-index: 100;
+            width: 70%;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        #autocomplete-list div {
+            padding: 10px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        #autocomplete-list div:hover {
+            background-color: #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+
+<div id="disease-chat-container">
+    <h1>Disease Chatbox</h1>
+    <label id="disease-label" for="user-input">Enter a disease:</label>
+    <div style="position: relative;">
+        <input type="text" id="user-input" aria-label="Disease Input" placeholder="e.g., cancer, stroke...">
+        <div id="autocomplete-list"></div>
+    </div>
+    <button id="send-button">Get Info</button>
+
+    <!-- Chat Output -->
+    <div id="chat-output" aria-live="polite"></div>
+</div>
+
+<script>
+    const chatOutput = document.getElementById('chat-output');
+    const userInput = document.getElementById('user-input');
+    const sendButton = document.getElementById('send-button');
+    const autocompleteList = document.getElementById('autocomplete-list');
+
+    const diseasesData = {
+            "cancer": {
+                description: `
+                    Cancer is a complex and diverse group of diseases characterized by the uncontrolled growth and spread of abnormal cells in the body.
+                    These abnormal cells can form tumors, invade nearby tissues, and even metastasize, spreading to other parts of the body through the bloodstream or lymphatic system.
+                    Cancer can affect virtually any organ or tissue in the body, and its severity can vary widely, from slow-growing and relatively harmless tumors to highly aggressive and life-threatening forms.`,
+                types: `
+                    Cancer is not a single disease but a category that includes various types, each with its own characteristics. Here are some common types of cancer:
+                    <ol>
+                        <li>Breast Cancer</li>
+                        <li>Lung Cancer</li>
+                        <li>Prostate Cancer</li>
+                        <li>Colorectal (Colon) Cancer</li>
+                        <li>Skin Cancer</li>
+                        <li>Leukemia</li>
+                        <li>Pancreatic Cancer</li>
+                        <li>Ovarian Cancer</li>
+                        <li>Bladder Cancer</li>
+                    </ol>`,
+                cures: `
+                    <p>The treatment for cancer varies depending on the type, stage, and individual patient. Common treatments include:</p>
+            <ol>
+            
+
+<li><strong>Surgery:</strong> It removes the tumor and some surrounding tissue from the breast. It may also involve removing lymph nodes under the arm.</li>
+<li><strong>Radiation Therapy:</strong> It uses high-energy rays or particles to kill cancer cells. It may be given after surgery to prevent recurrence or before surgery to shrink the tumor.</li>
+<li><strong>Chemotherapy:</strong> It uses drugs to kill cancer cells or stop them from growing. It may be given before or after surgery, or as the main treatment for advanced cancer.</li>
+<li><strong>Hormone Therapy:</strong> It blocks the effects of estrogen or progesterone, hormones that can fuel some breast cancers. It may be given after surgery or as a preventive measure for high-risk women.</li>
+<li><strong>Targeted Therap:</strong> It uses drugs that target specific characteristics of cancer cells, such as a protein called HER2. It may be given with chemotherapy or alone for HER2-positive breast cancer.</li>
+<li><strong>Immunotherapy:</strong> It uses drugs that stimulate the immune system to fight cancer. It may be given for certain types of breast cancer that have a high number of gene mutations or express a protein called PD-L1.
+    </ol>
+                    `,
+                symptoms: `
+                    Symptoms of cancer can vary widely depending on the type and stage. Common symptoms may include:
+                    <ul>
+                        <li>Unexplained weight loss</li>
+                        <!-- Add other common symptoms here -->
+                    </ul>`,
+            },
+            "breast cancer": {
+                description: `
+                <p>Breast cancer, disease characterized by the growth of malignant cells in the mammary glands. Breast cancer can strike males and females, although women are about 100 times more likely to develop the disease than men. Most cancers in female breasts form shortly before, during, or after menopause, with three-quarters of all cases being diagnosed after age 50. Generally, the older a woman is, the greater is her likelihood of developing breast cancer.</p>`,
+                types:`<p>Different type of breast cancer are:
+<ul>
+<li>luminal A</li>
+<li>luminal B</li>
+<li>HER2 positive</li>
+<li>basal-like</li>`,
+                cures:`<p>The treatment for cancer varies depending on the type, stage, and individual patient. Common treatments include:</p>
+            <ol>
+            
+
+<li><strong>Surgery:</strong> It removes the tumor and some surrounding tissue from the breast. It may also involve removing lymph nodes under the arm.</li>
+<li><strong>Radiation Therapy:</strong> It uses high-energy rays or particles to kill cancer cells. It may be given after surgery to prevent recurrence or before surgery to shrink the tumor.</li>
+<li><strong>Chemotherapy:</strong> It uses drugs to kill cancer cells or stop them from growing. It may be given before or after surgery, or as the main treatment for advanced cancer.</li>
+<li><strong>Hormone Therapy:</strong> It blocks the effects of estrogen or progesterone, hormones that can fuel some breast cancers. It may be given after surgery or as a preventive measure for high-risk women.</li>
+<li><strong>Targeted Therap:</strong> It uses drugs that target specific characteristics of cancer cells, such as a protein called HER2. It may be given with chemotherapy or alone for HER2-positive breast cancer.</li>
+<li><strong>Immunotherapy:</sttancer that have a high number of gene mutations or express a protein called PD-L1.
+        
+            </ol>`,
+            symptoms: `<ul>
+
+<li>A breast lump or thickening that feels different from the surrounding tissue</li>
+<li>Change in the size, shape or appearance of a breast</li>
+<li>Changes to the skin over the breast, such as dimpling</li>
+<li>A newly inverted nipple</li>
+<li>Peeling, scaling, crusting or flaking of the pigmented area of skin surrounding the nipple (areola) or breast skin</li>
+<li>Redness or pitting of the skin over your breast, like the skin of an orange</li>
+
+                        </ul>`},
+            "heart disease": {
+                description: "Heart disease, or cardiovascular disease, refers to a range of conditions that affect the heart and blood vessels.",
+                types: `<p>Types of heart disease include:</p>
+<ul>
+<li>Coronary Artery Disease (CAD)</li>
+<li>Heart Arrhythmias.</li>
+<li>Heart Failure</li>
+<li>Heart Valve Disease</li>`,
+                cures: `<p>Heart disease treatment depends on the cause and type of heart damage. Healthy lifestyle habits — such as eating a low-fat, low-salt diet, getting regular exercise and good sleep, and not smoking — are an important part of treatment.</p>
+                        <p>If lifestyle changes alone don't work, medications may be needed to control heart disease symptoms and to prevent complications. The type of medication used depends on the type of heart disease.</p>
+                        <p>Some people with heart disease may need a procedure or surgery. The type of procedure or surgery will depend on the type of heart disease and the amount of damage to the heart.</p>`,
+                symptoms: `<ul><li>Chest pain</li>
+<li>chest tightness</li>
+<li>chest discomfort (angina)</li>
+<li>Shortness of breath</li>
+<li>Pain in the neck, jaw, throat, upper belly area or back</li>
+<li>Pain, numbness, weakness or coldness in the legs or arms if the blood vessels in those body areas are narrowed</li>
+<li>Symptoms vary but may include shortness of breath, and irregular heartbeat.</li>`
+            },
+            "malaria": {
+                description: `<p>Malaria is a disease caused by a parasite. The parasite is spread to humans through the bites of infected mosquitoes. People who have malaria usually feel very sick with a high fever and shaking chills.</p>`,
+                types: "Malaria is primarily caused by Plasmodium parasites, including P. falciparum, P. vivax, P. ovale, and P. malariae.",
+                cures: `<p>Malaria is treated with prescription drugs to kill the parasite. The types of drugs and the length of treatment will vary, depending on:
+                         <ul>
+<li>Which type of malaria parasite you have</li>
+<li>The severity of your symptoms</li>
+<li>Your age</li>
+<li>Whether you're pregnant</li>
+                          </ul>       
+        <p><h3>Medications:</h3></p>
+<p>The most common antimalarial drugs include:</p>
+
+                          <ol>
+<li>Chloroquine phosphate: Chloroquine is the preferred treatment for any parasite that is sensitive to the drug. But in many parts of the world, parasites are resistant to chloroquine, and the drug is no longer an effective treatment.</li>
+<li>Artemisinin: It IS based combination therapies (ACTs). artemisinin-based combination therapy (ACT) is a combination of two or more drugs that work against the malaria parasite in different ways. This is usually the preferred treatment for chloroquine-resistant malaria. Examples include artemether-lumefantrine (Coartem) and artesunate-mefloquine.</li>
+    <h3>Other common antimalarial drugs include:</h3>
+
+<li>Atovaquone-proguanil (Malarone)</li>
+<li>Quinine sulfate (Qualaquin) with doxycycline (Oracea, Vibramycin, others)</li>
+<li>Primaquine phosphate</li>
+                          </ol>`,
+                symptoms: `<ul>
+
+<li>Fever</li>
+<li>Nausea and vomiting</li>
+<li>Diarrhea</li>
+<li>Abdominal pain</li>
+<li>Muscle or joint pain
+</li>
+<li>Chills</li>
+<li>General feeling of discomfort</li>
+<li>Cough</li>
+<li>Rapid heart rate</li>
+<li>Rapid breathing</li>
+<li>Fatigue</li>
+<li>Headache</li>
+
+</ul>
+`
+            },
+            "influenza": {
+                description: `<p>Flu, also called influenza, is an infection of the nose, throat and lungs, which are part of the respiratory system. The flu is caused by a virus. Influenza is commonly called the flu, but it's different from the stomach "flu" viruses that cause diarrhea and vomiting.</p>`,
+                types: `<p>There are three main types of influenza viruses: A, B, and C.</p>`,
+                cures: `<p>Treatment mainly involves rest, plenty of fluid, and sometimes antiviral medications(oseltamivir (Tamiflu), baloxavir (Xofluza) and zanamivir (Relenza)).</p>`,
+                symptoms: `<p>Common symptoms include: <ul><li>fever</li> <li>cough</li> <li>body aches</li>
+<li>Headache.</li>
+<li>Dry, persistent cough.</li>
+<li>Shortness of breath.</li>
+<li>Tiredness and weakness.</li>
+<li>Runny or stuffy nose.</li>
+<li>Sore throat.</li>
+<li>Eye pain.</li></ul>"
+`
+            },
+            "diabetes": {
+                description: `Diabetes is a chronic condition that affects how your body processes glucose (sugar) in your blood.`,
+                types: "Main types of diabetes include type 1, type 2, and gestational diabetes.",
+                cures: "Management often includes lifestyle changes, medication, and insulin therapy.",
+                symptoms: "Symptoms may include excessive thirst, frequent urination, and fatigue."
+            },
+            "alzheimer's disease": {
+                description: "Alzheimer's disease is a progressive brain disorder that affects memory, thinking, and behavior.",
+                types: "Alzheimer's disease is primarily of one type but can progress in stages.",
+                cures: "There is no cure for Alzheimer's, but treatment may help manage symptoms.",
+                symptoms: "Symptoms may include memory loss, confusion, and personality changes."
+            },
+            "hiv/aids": {
+                description: `<p>Acquired immunodeficiency syndrome (AIDS) is a chronic, potentially life-threatening condition caused by the human immunodeficiency virus (HIV). By damaging your immune system, HIV interferes with your body's ability to fight infection and disease.</p>
+
+                <p>HIV is a sexually transmitted infection (STI). It can also be spread by contact with infected blood and from illicit injection drug use or sharing needles. It can also be spread from mother to child during pregnancy, childbirth or breastfeeding. Without medication, it may take years before HIV weakens your immune system to the point that you have AIDS.</p>`,
+                types: `<p>HIV is categorized into types:<p> 
+                <ul>
+                <li>HIV-1</li>
+                <li> HIV-2.</li></ul>`,
+                cures: `<p>The treatment for HIV is called antiretroviral therapy (ART). ART involves taking a combination of HIV medicines (called an HIV treatment regimen) every day.</p>`,
+                symptoms: `<ul>
+    <li>Fever</li>
+    <li>Headache</li>
+    <li>Muscle aches and joint pain</li>
+    <li>Rash</li>
+    <li>Sore throat and painful mouth sores</li>
+    <li>Cough</li>
+    <li>Weight loss</li>
+    <li>Diarrhea</li>
+    <li>Swollen lymph glands, mainly on the neck</li>
+    <li>Night sweats</li>
+                            </ul>
+    `
+            },
+            "stroke": {
+                description: "A stroke occurs when there is a disruption in blood flow to the brain, leading to brain cell damage.",
+                types: "Ischemic stroke and hemorrhagic stroke are the primary types.",
+                cures: "Treatment depends on the type and may involve medication or surgery.",
+                symptoms: "Symptoms may include sudden numbness, trouble speaking, and severe headache."
+            },
+            "arthritis": {
+                description: `Arthritis is the swelling and tenderness of one or more joints. The main symptoms of arthritis are joint pain and stiffness, which typically worsen with age. The most common types of arthritis are osteoarthritis and rheumatoid arthritis.`,
+                types: `Common types include: <ul><li>osteoarthritiscauses cartilage — the hard, slippery tissue that covers the ends of bones where they form a joint — to break down.</li> <li>rheumatoid arthritis is a disease in which the immune system attacks the joints, beginning with the lining of joints.</li>`,
+                cures: "Management includes medication(Nonsteroidal anti-inflammatory drugs (NSAIDs),Counterirritants,Steroids,Disease-modifying antirheumatic drugs (DMARDs)), physical therapy, Surgery and lifestyle changes.",
+                symptoms: `Symptoms may include: <ul>
+                <li>Pain</li>
+                <li>Stiffness</li>
+                <li>Swelling</li>
+                <li>Redness</li>
+                <li>Decreased range of motion</li></ul>`
+            },
+            "asthma": {
+                description: "Asthma is a chronic respiratory condition that narrows airways, leading to breathing difficulties.",
+                types: "Asthma is categorized into allergic and non-allergic asthma.",
+                cures: "Treatment includes  inhalers and other medications to control symptoms.",
+                symptoms: "Symptoms may include wheezing, coughing, and shortness of breath."
+            },
+            "osteoporosis": {
+                description: `<p>Osteoporosis causes bones to become weak and brittle — so brittle that a fall or even mild stresses such as bending over or coughing can cause a break. Osteoporosis-related breaks most commonly occur in the hip, wrist or spine.</p>`,
+                types: "Primary osteoporosis and secondary osteoporosis are the primary types.",
+                cures: "Treatment involves medication(Alendronate (Binosto, Fosamax), Risedronate (Actonel, Atelvia), Ibandronate, Zoledronic acid (Reclast, Zometa)), dietary changes, and weight-bearing exercises.",
+                symptoms: "Osteoporosis is often referred to as a 'silent disease' because it has no symptoms until a fracture occurs."
+            },
+            "parkinson's disease": {
+                description: `<p>Parkinson's disease is a progressive disorder that affects the nervous system and the parts of the body controlled by the nerves. Symptoms start slowly. The first symptom may be a barely noticeable tremor in just one hand. Tremors are common, but the disorder may also cause stiffness or slowing of movement.</p>`,
+                types: `Parkinson's is primarily a single type of disease.`,
+                cures: `Parkinson’s disease is a chronic and progressive movement disorder that cannot be cured. However, medications can help control the symptoms of Parkinson’s disease 
+                medecine to help are:
+                <ul><li>Levodopa</li>
+                <li>Catechol-O-methyltransferase (COMT) inhibitors</li>
+                <li>Dopamine agonists</li>
+                <li>MAO-B inhibitors</li></ul>`,
+                symptoms: "Symptoms may include tremors, bradykinesia (slowness of movement), and muscle stiffness."
+            },
+            "chronic kidney disease": {
+                description: `<p>Chronic kidney disease, also called chronic kidney failure, involves a gradual loss of kidney function. Your kidneys filter wastes and excess fluids from your blood, which are then removed in your urine. Advanced chronic kidney disease can cause dangerous levels of fluid, electrolytes and wastes to build up in your body.</p>`,
+                                      types:``,
+                                       cures:`<p><H2>Treatment Of Chronic kidney disease:</H2></p>
+<ol>
+<li>High blood pressure medications.People with kidney disease can have worsening high blood pressure.medications to lower your blood pressure — commonly angiotensin-converting enzyme (ACE) inhibitors or angiotensin II receptor blockers — and to preserve kidney function.  </li>
+<li>Medications to relieve swelling. People with chronic kidney disease often retain fluids. This can lead to swelling in the legs as well as high blood pressure. Medications called diuretics can help maintain the balance of fluids in your body.</li>
+<li>Medications to treat anemia. Supplements of the hormone erythropoietin (uh-rith-roe-POI-uh-tin), sometimes with added iron, help produce more red blood cells. This might relieve fatigue and weakness associated with anemia.</li>
+<li>Medications to lower cholesterol levels. Your doctor might recommend medications called statins to lower your cholesterol. People with chronic kidney disease often have high levels of bad cholesterol, which can increase the risk of heart disease.</li>
+<li>Medications to protect your bones. Calcium and vitamin D supplements can help prevent weak bones and lower your risk of fracture. You might also take medication known as a phosphate binder to lower the amount of phosphate in your blood and protect your blood vessels from damage by calcium deposits (calcification).</li>
+<li>A lower protein diet to minimize waste products in your blood. As your body processes protein from foods, it creates waste products that your kidneys must filter from your blood. To reduce the amount of work your kidneys must do, your doctor might recommend eating less protein. A registered dietitian can suggest ways to lower your protein intake while still eating a healthy diet.</li>
+`,
+                                      symptoms: `<ul>
+<li>Fever/li>
+<li>Nausea and vomiting/li>
+<li>Diarrhea/li>
+<li>Abdominal pain/li>
+<li>Muscle or joint pain/li>
+<li>Chills/li>
+<li>General feeling of discomfort/li>
+<li>Cough/li>
+<li>Rapid heart rate/li>
+<li>Rapid breathing/li>
+<li>Fatigue/li>
+<li>Headache</li>
+</ul>`},
+            "hypertension": {
+                description: "Hypertension is a chronic medical condition where the blood pressure in the arteries is consistently elevated.",
+                types: `Hypertension is categorized into: <ul><li>primary (essential)</li><li>secondary types.</li></ul>`,
+                cures: `<p>Management includes lifestyle changes and medications(Medicines to relax blood vessels, Soluble guanylate cyclase (sGC) stimulators, Medicines to widen blood vessels, Medicines to increase blood flow, Blood thinners) to control blood pressure.</p>`,
+                symptoms: `<p>Sympton of Hypertension are:</p>
+<li>Shortness of breath, at first while exercising and eventually while at rest.</li>
+<li>Blue or gray skin color due to low oxygen levels. Depending on your skin color, these changes may be harder or easier to see.</li>
+<li>Chest pressure or pain.</li>
+<li>Dizziness or fainting spells.</li>
+<li>Fast pulse or pounding heartbeat.</li>
+<li>Fatigue.</li>
+Swelling in the ankles, legs and belly area.</li>`
+            },
+            "hepatitis": {
+    description: "Hepatitis is a group of viral infections that affect the liver. It can cause inflammation and liver damage.",
+    types: "Common types of hepatitis include hepatitis A, B, C, D, and E.",
+    cures: "Treatment may involve antiviral medications, and in some cases, hepatitis A and B vaccines are available for prevention.",
+    symptoms: `Symptoms may include: 
+<ul>
+<li>jaundice (yellowing of the skin and eyes)</li> 
+<li>fatigue</li>
+<li>abdominal pain</li>
+<li>poor appetite</li>
+<li>vomiting</li>
+<li>tiredness</li>
+<li>diarrhea.</li></ul>`
+},
+            "tuberculosis": {
+    description: "Tuberculosis (TB) is a bacterial infection caused by Mycobacterium tuberculosis. It primarily affects the lungs but can affect other organs as well.",
+    types: "Tuberculosis can be categorized as pulmonary TB (affecting the lungs) and extrapulmonary TB (affecting other organs).",
+    cures: "Treatment involves a combination of antibiotics for several months. It's important to complete the full course of treatment to cure TB.",
+    symptoms: "Common symptoms include persistent cough, weight loss, and night sweats."
+},
+            "kidney stones": {
+    description: "Kidney stones are hard, crystalline mineral deposits that form in the kidneys. They can vary in size and can cause severe pain when they pass through the urinary tract.",
+    types: "There are different types of kidney stones, including calcium stones, uric acid stones, and struvite stones.",
+    cures: "Treatment may involve pain relief, increased fluid intake, and, in some cases, medical procedures to remove or break up larger stones.",
+    symptoms: "Symptoms can include severe pain in the lower back or side, blood in urine, and frequent urination."
+},
+            "thyroid": {
+    description: "Thyroid diseases involve disorders of the thyroid gland, which can affect hormone production and regulation in the body.",
+    types: "Common thyroid disorders include hypothyroidism (underactive thyroid) and hyperthyroidism (overactive thyroid).",
+    cures: "Treatment depends on the specific thyroid disorder and may involve medication, lifestyle changes, or surgery.",
+    symptoms: "Symptoms can vary but may include fatigue, weight changes, and changes in heart rate."
+},
+
+
+    };
+
+    const diseaseNames = Object.keys(diseasesData);
+
+    // Function to show autocomplete suggestions
+    function autocomplete() {
+        const value = userInput.value.toLowerCase();
+        autocompleteList.innerHTML = '';
+
+        if (value) {
+            const suggestions = diseaseNames.filter(name => name.startsWith(value));
+            suggestions.forEach(suggestion => {
+                const suggestionItem = document.createElement('div');
+                suggestionItem.textContent = suggestion;
+                suggestionItem.addEventListener('click', () => {
+                    userInput.value = suggestion;
+                    autocompleteList.innerHTML = '';
+                });
+                autocompleteList.appendChild(suggestionItem);
+            });
+        }
+    }
+
+    // Function to simulate sending a message to the chatbot
+    function sendMessage() {
+        const message = userInput.value.trim().toLowerCase();
+        if (message === "") return;
+
+        // Add user's message to the chat
+        addMessage(message, 'user');
+        userInput.value = ""; // Clear input field
+        autocompleteList.innerHTML = ''; // Clear autocomplete list
+
+        // Check if input matches a known disease
+        if (diseasesData[message]) {
+            const diseaseInfo = diseasesData[message];
+            const response = `
+                <b>Description:</b> ${diseaseInfo.description}<br>
+                <b>Types:</b> ${diseaseInfo.types}<br>
+                <b>Symptoms:</b> ${diseaseInfo.symptoms}<br>
+                <b>Cures:</b> ${diseaseInfo.cures}
+            `;
+            addMessage(response, 'bot');
+        } else {
+            addMessage("I'm sorry, I don't have information on that disease. Please try another.", 'bot');
+        }
+    }
+
+    // Function to add a message to the chat output
+    function addMessage(message, sender) {
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('message', sender);
+        messageElement.innerHTML = message;
+        chatOutput.appendChild(messageElement);
+        chatOutput.scrollTop = chatOutput.scrollHeight;
+    }
+
+    // Event listeners
+    sendButton.addEventListener('click', sendMessage);
+    userInput.addEventListener('input', autocomplete);
+    userInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage();
+    });
+</script>
+
+</body>
+</html>
